@@ -1,9 +1,12 @@
 package it.jaschke.alexandria;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.LoaderManager;
@@ -18,7 +21,6 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
-
 
 import it.jaschke.alexandria.data.AlexandriaContract;
 import it.jaschke.alexandria.services.BookService;
@@ -69,21 +71,26 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
 
             @Override
             public void afterTextChanged(Editable s) {
-                String ean =s.toString();
+                String ean = s.toString();
                 //catch isbn10 numbers
-                if(ean.length()==10 && !ean.startsWith("978")){
-                    ean="978"+ean;
+                if (ean.length() == 10 && !ean.startsWith("978")) {
+                    ean = "978" + ean;
                 }
-                if(ean.length()<13){
+                if (ean.length() < 13) {
                     clearFields();
                     return;
                 }
-                //Once we have an ISBN, start a book intent
-                Intent bookIntent = new Intent(getActivity(), BookService.class);
-                bookIntent.putExtra(BookService.EAN, ean);
-                bookIntent.setAction(BookService.FETCH_BOOK);
-                getActivity().startService(bookIntent);
-                AddBook.this.restartLoader();
+
+                if(Utility.isNetworkAvailable(getActivity())) {
+                    //Once we have an ISBN, start a book intent
+                    Intent bookIntent = new Intent(getActivity(), BookService.class);
+                    bookIntent.putExtra(BookService.EAN, ean);
+                    bookIntent.setAction(BookService.FETCH_BOOK);
+                    getActivity().startService(bookIntent);
+                    AddBook.this.restartLoader();
+                }else{
+                    Toast.makeText(getActivity(), getString(R.string.network_unavailable), Toast.LENGTH_SHORT).show();
+                }
             }
         });
 
@@ -97,14 +104,36 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
                 // are using an external app.
                 //when you're done, remove the toast below.
                 Context context = getActivity();
-                CharSequence text = "This button should let you scan a book for its barcode!";
-                int duration = Toast.LENGTH_SHORT;
 
-                Toast toast = Toast.makeText(context, text, duration);
-                toast.show();
+                final String packageName = "com.google.zxing.client.android";
+
+                Intent intent = new Intent("com.google.zxing.client.android.SCAN");
+                intent.setPackage(packageName);
+                intent.putExtra("SCAN_MODE", "ONE_D_MODE"); // String
+                if (intent.resolveActivity(context.getPackageManager()) != null) {
+                    startActivityForResult(intent, 0);
+                } else {
+                    // direct user to install zxing
+                    AlertDialog.Builder installDialog = new AlertDialog.Builder(getActivity());
+                    installDialog.setTitle(getString(R.string.zxing_dialog_title));
+                    installDialog.setMessage(getString(R.string.zxing_dialog_message));
+                    installDialog.setPositiveButton(getString(R.string.zxing_dialog_yes), new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            Uri uri = Uri.parse("market://details?id=" + packageName);
+                            Intent installIntent = new Intent(Intent.ACTION_VIEW, uri);
+                            startActivity(installIntent);
+                        }
+                    });
+                    installDialog.setNegativeButton(getString(R.string.zxing_dialog_no), null);
+                    installDialog.setCancelable(true);
+                    installDialog.show();
+                }
 
             }
         });
+
+
 
         rootView.findViewById(R.id.save_button).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -130,6 +159,19 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
         }
 
         return rootView;
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == 0) {
+            if (resultCode == Activity.RESULT_OK) {
+                String contents = data.getStringExtra("SCAN_RESULT");
+                // Handle successful scan
+                ean.setText(contents);
+            } else if (resultCode == Activity.RESULT_CANCELED) {
+                // Handle cancel
+            }
+        }
     }
 
     private void restartLoader(){
