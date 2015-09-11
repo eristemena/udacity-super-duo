@@ -26,6 +26,7 @@
     <string name="share_text">A must read book: </string>
 
     <string name="network_unavailable">Couldn\'t fetch ISBN info. Network access is not available at the moment.</string>
+    <string name="no_author">No author for this book</string>
 
     <string name="zxing_dialog_title">App is not installed</string>
     <string name="zxing_dialog_message">You need to download the Barcode App from the Google Play Store to use this functionality.</string>
