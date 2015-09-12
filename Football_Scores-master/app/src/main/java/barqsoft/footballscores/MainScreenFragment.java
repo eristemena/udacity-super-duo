@@ -23,7 +23,11 @@ public class MainScreenFragment extends Fragment implements LoaderManager.Loader
     public scoresAdapter mAdapter;
     public static final int SCORES_LOADER = 0;
     private String[] fragmentdate = new String[1];
-    private int last_selected_item = -1;
+
+    private int last_selected_item = ListView.INVALID_POSITION;
+    private ListView mListView;
+
+    private static final String SELECTED_KEY = "selected_position";
 
     public MainScreenFragment()
     {
@@ -43,22 +47,28 @@ public class MainScreenFragment extends Fragment implements LoaderManager.Loader
                              final Bundle savedInstanceState) {
         update_scores();
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
-        final ListView score_list = (ListView) rootView.findViewById(R.id.scores_list);
+        mListView = (ListView) rootView.findViewById(R.id.scores_list);
         mAdapter = new scoresAdapter(getActivity(),null,0);
-        score_list.setAdapter(mAdapter);
+        mListView.setAdapter(mAdapter);
         getLoaderManager().initLoader(SCORES_LOADER,null,this);
         mAdapter.detail_match_id = MainActivity.selected_match_id;
-        score_list.setOnItemClickListener(new AdapterView.OnItemClickListener()
-        {
+        mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id)
-            {
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 ViewHolder selected = (ViewHolder) view.getTag();
                 mAdapter.detail_match_id = selected.match_id;
                 MainActivity.selected_match_id = (int) selected.match_id;
                 mAdapter.notifyDataSetChanged();
+
+                last_selected_item=position;
             }
         });
+        if (savedInstanceState != null && savedInstanceState.containsKey(SELECTED_KEY)) {
+            // The listview probably hasn't even been populated yet.  Actually perform the
+            // swapout in onLoadFinished.
+            last_selected_item = savedInstanceState.getInt(SELECTED_KEY);
+        }
+        mListView.setSelection(last_selected_item);
         return rootView;
     }
 
@@ -82,15 +92,19 @@ public class MainScreenFragment extends Fragment implements LoaderManager.Loader
         }
         */
 
-        int i = 0;
-        cursor.moveToFirst();
-        while (!cursor.isAfterLast())
-        {
-            i++;
-            cursor.moveToNext();
-        }
+//        int i = 0;
+//        cursor.moveToFirst();
+//        while (!cursor.isAfterLast())
+//        {
+//            i++;
+//            cursor.moveToNext();
+//        }
         //Log.v(FetchScoreTask.LOG_TAG,"Loader query: " + String.valueOf(i));
         mAdapter.swapCursor(cursor);
+
+        if(last_selected_item!= ListView.INVALID_POSITION){
+            mListView.smoothScrollToPosition(last_selected_item);
+        }
         //mAdapter.notifyDataSetChanged();
     }
 
@@ -100,5 +114,11 @@ public class MainScreenFragment extends Fragment implements LoaderManager.Loader
         mAdapter.swapCursor(null);
     }
 
-
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        if (last_selected_item != ListView.INVALID_POSITION) {
+            outState.putInt(SELECTED_KEY, last_selected_item);
+        }
+        super.onSaveInstanceState(outState);
+    }
 }
