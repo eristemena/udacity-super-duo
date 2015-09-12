@@ -77,9 +77,7 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
                     ean = "978" + ean;
                 }
 
-                // it only clear fields when the user change the ISBN into less than 10 characters
-                if (ean.length() < 10) {
-                    clearFields();
+                if (ean.length() < 13) {
                     return;
                 }
 
