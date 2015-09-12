@@ -29,6 +29,8 @@ import barqsoft.footballscores.widget.ScoresWidget;
  * helper methods.
  */
 public class WidgetUpdateService extends IntentService {
+    private static final String LOG_TAG = WidgetUpdateService.class.getSimpleName();
+
     // What this IntentService can perform
     private static final String ACTION_UPDATED_SCORES = "barqsoft.footballscores.service.action.UPDATED_SCORES";
 
@@ -91,7 +93,7 @@ public class WidgetUpdateService extends IntentService {
         Cursor data = getContentResolver().query(scoresForDateUri, WIDGET_COLUMNS, null, new String[]{today}, null);
 
         if (data == null) {
-            Log.e("WUT", "THIS IS NOT WORKING");
+            Log.e(LOG_TAG, "Fail to get cursor? why?");
         }
 
         if (!data.moveToFirst()) {
